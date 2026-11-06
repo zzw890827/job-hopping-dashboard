@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+worker-configuration.d.ts
+# local / personal config
+wrangler.jsonc
+.dev.vars
+*.local.json
+data/private*.json
+# terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
+infra/.terraform.lock.hcl
+.DS_Store

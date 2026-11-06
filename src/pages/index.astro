@@ -1,0 +1,234 @@
+---
+import "../styles/global.css";
+import { getDashboard } from "../lib/db";
+import { STATUS, daysUntil, fmt, kpis, salaryChart, shortDate, today } from "../lib/view";
+import EditDialog from "../components/EditDialog.astro";
+
+const { settings: s, applications, events, todos } = await getDashboard();
+const now = today(s);
+const active = applications.filter((a) => a.list === "active");
+const pending = applications
+  .filter((a) => a.list === "pending")
+  .sort((a, b) => (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"));
+const closed = applications.filter((a) => a.list === "closed");
+const cards = kpis(applications, todos.filter((t) => !t.done).length);
+const ch = salaryChart(applications, s);
+const salaryText = (a: (typeof applications)[number]) =>
+  a.salary_text || (a.salary_max ? `${a.salary_min != null ? fmt(a.salary_min) + "–" : "〜"}${fmt(a.salary_max)}万` : "");
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>转职 Dashboard</title>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>转职 Dashboard</h1>
+          <div class="sub">今天 {now} · 登录：{Astro.locals.user}</div>
+        </div>
+        <div class="target">
+          {s.current > 0 && <span class="chip">现年收 <b>{fmt(s.current)}万</b></span>}
+          {s.targetMin > 0 && <span class="chip">最低希望 <b>{fmt(s.targetMin)}万</b></span>}
+          {s.target > 0 && <span class="chip">希望 <b>{fmt(s.target)}万</b></span>}
+          {s.earliestStart && <span class="chip">最早入职 <b>{s.earliestStart}</b></span>}
+          <button class="theme-btn" id="themeBtn" type="button">切换主题</button>
+        </div>
+      </header>
+
+      <section class="kpis">
+        {cards.map((k) => (
+          <div class="kpi"><div class="label">{k.label}</div><div class="value">{k.value}</div><div class="note">{k.note}</div></div>
+        ))}
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>选考 Pipeline</h2>
+          <button class="btn" type="button" data-new="active">＋ 添加案件</button>
+        </div>
+        <p class="desc">
+          点击卡片可编辑。<span class="status s-wait"><i></i>等对方回复</span>　<span class="status s-risk"><i></i>有风险</span>　<span class="status s-todo"><i></i>轮到我行动</span>
+        </p>
+        <div class="stages">
+          {s.stages.map((stage) => {
+            const jobs = active.filter((j) => j.stage === stage);
+            return (
+              <div class="stage">
+                <h3>{stage}<span>{jobs.length}</span></h3>
+                {jobs.length ? jobs.map((j) => (
+                  <div class="job" data-edit={j.id} tabindex="0" role="button">
+                    <div class="co">{j.company}</div>
+                    <div class="pos">{j.position}</div>
+                    <div class="meta">
+                      <span class={`status ${STATUS[j.status][0]}`}><i></i>{STATUS[j.status][1]}</span>
+                      {j.agent && <span>{j.agent}</span>}
+                      <span>{salaryText(j) || "年收未定"}</span>
+                      {j.fit && <span>{j.fit}</span>}
+                    </div>
+                    {(j.next_action || j.since) && (
+                      <div class="next">{j.next_action}<div class="meta">{j.since && <span>{j.since}</span>}{j.link && <a href={j.link} target="_blank" rel="noopener noreferrer">链接</a>}</div></div>
+                    )}
+                  </div>
+                )) : <div class="empty">—</div>}
+              </div>
+            );
+          })}
+        </div>
+        {active.some((j) => !j.stage || !s.stages.includes(j.stage)) && (
+          <p class="desc">⚠️ 有案件的阶段不在 stages 设置里：{active.filter((j) => !j.stage || !s.stages.includes(j.stage)).map((j) => j.company).join("、")}</p>
+        )}
+      </section>
+
+      <div class="grid2">
+        <section class="card">
+          <h2>年收范围 vs 希望年收</h2>
+          <p class="desc">进行中和待回复职位的年收范围（万円）。红色虚线 = 最低希望，灰色虚线 = 现年收</p>
+          <div class="chart" id="salary">
+            <div class="tip" id="tip"></div>
+            <svg viewBox={`0 0 ${ch.W} ${ch.H}`} role="img" aria-label="各职位年收范围与希望年收对比">
+              {ch.ticks.map((t) => (
+                <>
+                  <line x1={ch.sx(t)} x2={ch.sx(t)} y1={ch.padT} y2={ch.H - ch.padB} stroke="var(--grid)" stroke-width="1" />
+                  <text x={ch.sx(t)} y={ch.H - ch.padB + 16} text-anchor="middle">{fmt(t)}</text>
+                </>
+              ))}
+              {ch.rows.map((r, i) => {
+                const y = ch.padT + i * ch.rowH + ch.rowH / 2;
+                const lo = r.min ?? r.max;
+                const split = Math.min(Math.max(lo, s.targetMin), r.max);
+                return (
+                  <g class="hit" data-name={r.name} data-min={r.min ?? ""} data-max={r.max}>
+                    <text class="lab" x={ch.padL - 10} y={y + 4} text-anchor="end">{r.name}</text>
+                    {r.min == null ? (
+                      <>
+                        <circle cx={ch.sx(r.max)} cy={y} r="5" fill="var(--range-strong)" stroke="var(--surface-1)" stroke-width="2" />
+                        <text x={ch.sx(r.max) + 10} y={y + 4}>仅知上限 {fmt(r.max)}</text>
+                      </>
+                    ) : (
+                      <>
+                        {split > lo && <rect x={ch.sx(lo)} y={y - 6} width={ch.sx(split) - ch.sx(lo)} height="12" rx="4" fill="var(--range)" />}
+                        {r.max > split && <rect x={ch.sx(split) + (split > lo ? 2 : 0)} y={y - 6} width={Math.max(0, ch.sx(r.max) - ch.sx(split) - (split > lo ? 2 : 0))} height="12" rx="4" fill="var(--range-strong)" />}
+                      </>
+                    )}
+                    <rect x={ch.padL} y={y - ch.rowH / 2} width={ch.W - ch.padL - ch.padR} height={ch.rowH} fill="transparent" />
+                  </g>
+                );
+              })}
+              {[[s.targetMin, "var(--ref-min)"], [s.current, "var(--ref-cur)"]].filter(([v]) => (v as number) > 0).map(([v, c]) => (
+                <line x1={ch.sx(v as number)} x2={ch.sx(v as number)} y1={ch.padT - 4} y2={ch.H - ch.padB} stroke={c as string} stroke-width="1.5" stroke-dasharray="4 3" />
+              ))}
+            </svg>
+          </div>
+          <div class="legend">
+            <span><i class="sw" style="background:var(--range)"></i>年收范围</span>
+            <span><i class="sw" style="background:var(--range-strong)"></i>≥ 最低希望 的部分</span>
+            <span><i class="ln" style="border-color:var(--ref-min)"></i>最低希望</span>
+            <span><i class="ln" style="border-color:var(--ref-cur)"></i>现年收</span>
+          </div>
+          <details style="margin-top:10px">
+            <summary>表格视图</summary>
+            <div class="tbl-scroll">
+              <table>
+                <tr><th>职位</th><th>下限</th><th>上限</th><th>上限 − 最低希望</th></tr>
+                {ch.rows.map((r) => (
+                  <tr><td>{r.name}</td><td class="dl">{r.min ?? "—"}</td><td class="dl">{r.max}</td><td class="dl">{r.max - s.targetMin >= 0 ? "+" : ""}{r.max - s.targetMin}</td></tr>
+                ))}
+              </table>
+            </div>
+          </details>
+        </section>
+
+        <section class="card">
+          <h2>待办</h2>
+          <p class="desc">保存在数据库，所有设备同步</p>
+          <ul class="todo">
+            {todos.map((t) => (
+              <li class={t.done ? "done" : ""}>
+                <input type="checkbox" data-todo={t.id} checked={t.done} aria-label={t.text} />
+                <span class="grow"><span class="t">{t.text}</span>{t.who && <span class="who"> · {t.who}</span>}</span>
+                <button class="btn icon" type="button" data-del-todo={t.id} aria-label="删除">✕</button>
+              </li>
+            ))}
+          </ul>
+          <form class="inline-form" id="todoForm">
+            <input name="text" placeholder="新待办" required maxlength="500" />
+            <input name="who" placeholder="谁" maxlength="60" style="flex:0 1 90px" />
+            <button class="btn primary">添加</button>
+          </form>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>收到推荐、尚未回复</h2>
+          <button class="btn" type="button" data-new="pending">＋ 添加推荐</button>
+        </div>
+        <p class="desc">按回复期限排序；7 天内到期的标红。点击行可编辑</p>
+        <div class="tbl-scroll">
+          <table>
+            <tr><th>#</th><th>公司</th><th>职位</th><th>年收</th><th>担当</th><th>推荐日</th><th>期限 / 备注</th></tr>
+            {pending.map((p) => {
+              const d = p.deadline ? daysUntil(p.deadline, now) : null;
+              return (
+                <tr class="row-edit" data-edit={p.id}>
+                  <td>{p.ref ?? ""}</td><td>{p.company}</td><td>{p.position}</td>
+                  <td class="dl">{salaryText(p) || "—"}</td><td>{p.agent}</td><td class="dl">{p.received}</td>
+                  <td>
+                    {d != null && <span class={`dl ${d <= 7 ? "soon" : ""}`}>{shortDate(p.deadline)} 截止（剩 {d} 天）</span>}
+                    {d != null && p.note && <br />}
+                    {p.note}
+                  </td>
+                </tr>
+              );
+            })}
+          </table>
+        </div>
+      </section>
+
+      <div class="grid2">
+        <section class="card">
+          <h2>最近动态</h2>
+          <ul class="tl">
+            {events.map((e) => (
+              <li><span class="d">{shortDate(e.at)}</span><span>{e.text}</span><button class="btn icon" type="button" data-del-event={e.id} aria-label="删除">✕</button></li>
+            ))}
+          </ul>
+          <form class="inline-form" id="eventForm">
+            <input name="at" type="datetime-local" required style="flex:0 1 190px" />
+            <input name="text" placeholder="发生了什么" required maxlength="500" />
+            <button class="btn primary">记录</button>
+          </form>
+        </section>
+        <section class="card">
+          <div class="card-head">
+            <h2>已结束</h2>
+            <button class="btn" type="button" data-new="closed">＋</button>
+          </div>
+          <div class="tbl-scroll">
+            <table>
+              <tr><th>公司</th><th>职位</th><th>结果</th></tr>
+              {closed.map((c) => (
+                <tr class="row-edit" data-edit={c.id}><td>{c.company}</td><td>{c.position}</td><td>{c.result}</td></tr>
+              ))}
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <footer>数据保存在 Cloudflare D1。API：<code>/api/dashboard</code>、<code>/api/applications</code>、<code>/api/events</code>、<code>/api/todos</code>、<code>/api/settings</code></footer>
+    </div>
+
+    <EditDialog stages={s.stages} />
+    <div class="toast" id="toast" role="status"></div>
+    <script type="application/json" id="apps-data" set:html={JSON.stringify(applications).replace(/</g, "\\u003c")} />
+    <script>
+      import "../scripts/client";
+    </script>
+  </body>
+</html>

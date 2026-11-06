@@ -1,0 +1,55 @@
+---
+import { STATUS } from "../lib/view";
+interface Props { stages: string[] }
+const { stages } = Astro.props;
+---
+
+<dialog id="editDialog" aria-labelledby="editTitle">
+  <form method="dialog" id="editForm">
+    <h2 id="editTitle">编辑案件</h2>
+    <input type="hidden" name="id" />
+    <div class="fields">
+      <label>分类
+        <select name="list">
+          <option value="active">进行中</option>
+          <option value="pending">待回复推荐</option>
+          <option value="closed">已结束</option>
+        </select>
+      </label>
+      <label>状态
+        <select name="status">
+          {Object.entries(STATUS).map(([k, [, v]]) => <option value={k}>{v}</option>)}
+        </select>
+      </label>
+      <label class="wide">公司 *<input name="company" required maxlength="200" /></label>
+      <label class="wide">职位<input name="position" maxlength="300" /></label>
+      <label>简称（图表用）<input name="label" maxlength="60" /></label>
+      <label>编号<input name="ref" maxlength="60" /></label>
+      <label>阶段
+        <select name="stage">
+          <option value="">—</option>
+          {stages.map((s) => <option value={s}>{s}</option>)}
+        </select>
+      </label>
+      <label>担当<input name="agent" maxlength="120" /></label>
+      <label>年收下限（万）<input name="salary_min" type="number" min="0" step="1" /></label>
+      <label>年收上限（万）<input name="salary_max" type="number" min="0" step="1" /></label>
+      <label>年收（文字）<input name="salary_text" maxlength="60" placeholder="如 〜1,900万" /></label>
+      <label>匹配 / 进度标签<input name="fit" maxlength="120" /></label>
+      <label class="wide">下一步<textarea name="next_action" maxlength="500"></textarea></label>
+      <label class="wide">最新进展<input name="since" maxlength="200" /></label>
+      <label>推荐日<input name="received" maxlength="20" /></label>
+      <label>回复期限<input name="deadline" type="date" /></label>
+      <label class="wide">备注<textarea name="note" maxlength="500"></textarea></label>
+      <label class="wide">结果（已结束用）<input name="result" maxlength="500" /></label>
+      <label class="wide">链接<input name="link" type="url" maxlength="500" /></label>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn danger" type="button" id="editDelete">删除</button>
+      <div>
+        <button class="btn" type="button" id="editCancel">取消</button>
+        <button class="btn primary" type="submit" value="save">保存</button>
+      </div>
+    </div>
+  </form>
+</dialog>

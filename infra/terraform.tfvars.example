@@ -1,0 +1,4 @@
+account_id     = "<CLOUDFLARE_ACCOUNT_ID>"
+hostname       = "jobs.example.com"
+allowed_emails = ["you@example.com"]
+access_team_domain = "<TEAM>.cloudflareaccess.com"

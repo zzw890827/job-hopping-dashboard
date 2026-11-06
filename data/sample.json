@@ -1,0 +1,45 @@
+{
+  "settings": {
+    "current": 900,
+    "targetMin": 1000,
+    "target": 1200,
+    "earliestStart": "2027/4",
+    "stages": ["应募意向", "书类准备", "书类选考", "面试", "内定"]
+  },
+  "applications": [
+    { "list": "active", "company": "Acme Cloud株式会社", "label": "Acme", "position": "Solutions Architect", "ref": "AC-1024",
+      "stage": "面试", "status": "good", "agent": "Agent A", "salary_min": 800, "salary_max": 1400, "fit": "一面合格",
+      "next_action": "等二面日程", "since": "一面合格" },
+    { "list": "active", "company": "Globex Consulting", "label": "Globex", "position": "Cloud Migration Manager", "ref": "GX-77",
+      "stage": "书类选考", "status": "wait", "agent": "Agent B", "salary_min": 900, "salary_max": 1600,
+      "next_action": "等书类结果", "since": "已推荐" },
+    { "list": "active", "company": "Initech Japan", "label": "Initech SRE", "position": "Site Reliability Engineer",
+      "stage": "书类准备", "status": "todo", "agent": "Agent B", "salary_min": 700, "salary_max": 1100,
+      "next_action": "按 SRE 方向改写職務経歴書", "since": "推荐受领" },
+    { "list": "active", "company": "Umbrella AI", "label": "Umbrella", "position": "Forward Deployed Engineer",
+      "stage": "内定", "status": "risk", "agent": "Direct", "salary_min": 1000, "salary_max": 1300,
+      "next_action": "年收交涉中", "since": "内定（年收低于希望）" },
+    { "list": "pending", "company": "Hooli Japan", "label": "Hooli", "position": "Technical Program Manager", "ref": "HJ-9",
+      "agent": "Agent C", "received": "11/01", "deadline": "2026-11-12", "salary_max": 1500, "salary_text": "〜1,500万",
+      "note": "需要确认英语面试" },
+    { "list": "pending", "company": "Stark Systems", "position": "DX Consultant", "agent": "Agent A", "received": "11/03",
+      "note": "等 JD" },
+    { "list": "closed", "company": "Wayne Data", "position": "Data Architect", "status": "closed", "result": "一面未合格" },
+    { "list": "closed", "company": "Cyberdyne", "position": "Pre-sales Engineer", "status": "closed", "result": "不应募（年收上限低）" }
+  ],
+  "events": [
+    { "at": "2026-11-05 14:00", "text": "Acme 一面（Teams）" },
+    { "at": "2026-11-06 10:30", "text": "Acme：一面合格通知" },
+    { "at": "2026-11-04 09:00", "text": "Globex 书类提交" },
+    { "at": "2026-11-03 18:20", "text": "Agent A 介绍 Stark Systems" },
+    { "at": "2026-11-01 12:00", "text": "Agent C 介绍 Hooli Japan TPM" },
+    { "at": "2026-10-30", "text": "Wayne Data 一面未合格" }
+  ],
+  "todos": [
+    { "text": "回复 Acme 二面候选日程", "who": "我" },
+    { "text": "改写 Initech 用職務経歴書", "who": "我" },
+    { "text": "等 Globex 书类结果", "who": "Agent B" },
+    { "text": "确认 Hooli 是否英语面试", "who": "我" },
+    { "text": "准备简历英文版", "who": "我", "done": true }
+  ]
+}

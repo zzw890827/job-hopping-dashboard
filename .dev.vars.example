@@ -1,0 +1,3 @@
+# Local development only: skips Cloudflare Access JWT verification.
+# Never set this in production.
+AUTH_MODE=dev
